@@ -5,9 +5,9 @@ describe Service::Asana do
   before do
     @config = {
       :api_key => 'key',
-      :project_url => 'https://app.asana.com/0/workspace/project'
+      :project_url => 'https://app.asana.com/0/project/task'
     }
-    @parsed_url = { :workspace => 'workspace', :project => 'project' }
+    @parsed_url = { :project => 'project' }
   end
   
   it 'should have a title' do
@@ -28,17 +28,17 @@ describe Service::Asana do
     end
     
     it 'should succeed upon successful api response' do
-      @service.should_receive(:find_workspace).with(@config).and_return(mock(:id => @parsed_url[:workspace]))
+      @service.should_receive(:find_project).with(@config).and_return(mock(:id => @parsed_url[:project]))
       
       resp = @service.receive_verification(@config, @payload)
       resp.should == [true, 'Successfully verified Asana settings']
     end
     
     it 'should fail upon unsuccessful api response' do
-      @service.should_receive(:find_workspace).with(@config).and_return(nil)
+      @service.should_receive(:find_project).with(@config).and_return(nil)
       
       resp = @service.receive_verification(@config, @payload)
-      resp.should == [false, "Oops! Can not find #{@parsed_url[:workspace]} project. Please check your settings."]
+      resp.should == [false, "Oops! Can not find #{@parsed_url[:project]} project. Please check your settings."]
     end
   end
   
@@ -83,7 +83,8 @@ describe Service::Asana do
         :url => "http://foo.com/bar"
       }
       @notes = @service.create_notes(@payload)
-      @workspace = mock(:id => @parsed_url[:workspace])
+      @workspace = mock(:id => 'workspace')
+      @project = mock(:workspace => @workspace)
     end
     
     it 'should respond' do
@@ -91,14 +92,14 @@ describe Service::Asana do
     end
     
     it 'should succeed upon successful api response' do
-      @service.should_receive(:find_workspace).with(@config).and_return(@workspace)
+      @service.should_receive(:find_project).with(@config).and_return(@project)
       @workspace.should_receive(:create_task).and_return(mock(:id => '5007359597360'))
       resp = @service.receive_issue_impact_change(@config, @payload)
       resp.should == { :asana_task_id => '5007359597360' }
     end
     
     it 'should fail upon unsuccessful api response' do
-      @service.should_receive(:find_workspace).and_return(nil)
+      @service.should_receive(:find_project).and_return(nil)
       lambda { @service.receive_issue_impact_change(@config, @payload) }.should raise_error
     end
   end

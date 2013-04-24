@@ -9,7 +9,7 @@ class Service::Asana < Service::Base
          clicking on your name in the lefthand pane, \
          click \'Account Settings\' and select the \'APPS\' tab.'
 
-  string :project_url, :placeholder => 'https://app.asana.com/0/<workspace>/<project>',
+  string :project_url, :placeholder => 'https://app.asana.com/0/<project>/<task>',
          :label => 'The URL to the project where you would like the \
          Crashlytics tasks to go.'
          
@@ -18,10 +18,10 @@ class Service::Asana < Service::Base
   
   def receive_verification(config, _)
     parsed_url = parse_url(config[:project_url])
-    workspace = find_workspace(config)
-    if workspace.nil?
-      [false, "Oops! Can not find #{parsed_url[:workspace]} project. Please check your settings."]
-    elsif workspace.id == parsed_url[:workspace]
+    project = find_project(config)
+    if project.nil?
+      [false, "Oops! Can not find #{parsed_url[:project]} project. Please check your settings."]
+    elsif project.id == parsed_url[:project]
       [true,  "Successfully verified Asana settings"]
     end
     rescue => e
@@ -30,7 +30,7 @@ class Service::Asana < Service::Base
   end
   
   def receive_issue_impact_change(config, payload)
-    workspace = find_workspace(config)
+    workspace = find_project(config).workspace
     parsed_url = parse_url(config[:project_url])
     notes = create_notes(payload)
     
@@ -46,16 +46,16 @@ class Service::Asana < Service::Base
   end
   
   private
-  def find_workspace(config)
+  def find_project(config)
     parsed_url = parse_url(config[:project_url])
     Asana.configure do |client|
       client.api_key = config[:api_key]
     end
-    Asana::Workspace.find(parsed_url[:workspace])
+    Asana::Project.find(parsed_url[:project])
   end
   
   def parse_url(url)
-    url_parts = url.split('/') # => ["https:", "", "app.asana.com", "0", "<workspace>", "<project>"]
-    { :workspace => url_parts[-2], :project => url_parts.last }
+    url_parts = url.split('/') # => ["https:", "", "app.asana.com", "0", "<project>", "<task>"]
+    { :project => url_parts[-2] }
   end
 end
